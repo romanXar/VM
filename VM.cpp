@@ -4,370 +4,352 @@
 #include <chrono>
 #include <cstdint>
 
-enum : uint8_t {
-    MOV_II_VV,
-    MOV_II_VC,
+enum {
+	MOV_II_VC,
 
-    MOV_IN_ARG,
-    MOV_IN_ARG_CONST,
-
-    MOV_OUT_ARG,
-
-    ADD_III_VVV,
-    ADD_III_VVC,
-
-    SUB_III_VVC,
-
-    CALL,
-    CALL_C,
-    CALL_V,
-
-    RET_I_V,
-    RET_I_C,
-
-    RET_ADD_II_VV,
+	ADD_III_VVC,
+	ADD_III_VVV,
 
 
-    ALLOC,
-    DEALLOC,
 
-    IF_LE_II_VC,
 
-    PRINT,
 
-    GOTO,
+	CALL,
 
-    eOF,
-    OP_COUNT
+	RET,
+
+	RET_ADD_III_VVV,
+
+
+	IF_LE_II_VC,
+
+	PRINT,
+
+
+	PAUSE,
+	eOF,
+
+	OP_COUNT
 };
 
-enum : uint8_t {
-    VAR_I,
-    VAR_S,
-    LIT_I,
-    LIT_S,
+enum {
+	VAR_I,
+	VAR_S,
+	LIT_I,
+	LIT_S,
 };
 
 struct Command {
-    int16_t op;
-    intptr_t mem1;
-    intptr_t mem2;
-    intptr_t mem3;
+	intptr_t op;
+	intptr_t mem1;
+	intptr_t mem2;
+	intptr_t mem3;
 };
+
 
 class VMemory {
 private:
-    uint64_t* data;
-    intptr_t cur = 0;
-    const intptr_t CAPACITY = 10000000;
+	intptr_t* data;
+	intptr_t cur = 0;
+	const intptr_t CAPACITY = 10000000;
 
 public:
-    void Alloc(intptr_t size) {
-        cur += size;
-    }
+	void SetCur(intptr_t size) {
 
-    void DeAlloc(intptr_t size) {
-        cur -= size;
-    }
+		cur = size;
 
-    void Set(intptr_t data_pos, intptr_t value) {
-        data[cur - data_pos] = static_cast<uint64_t>(value);
-    }
+	}
 
-    intptr_t Get(intptr_t data_pos) {
-        return data[cur - data_pos];
-    }
+	void Up(intptr_t size) {
+		cur += size;
+	}
 
-    void Push(intptr_t value) {
-        Alloc(1);
-        Set(1, value);
-    }
+	void Down(intptr_t size) {
+		cur -= size;
+	}
 
-    intptr_t Pop() {
-        intptr_t result = Get(1);
-        DeAlloc(1);
-        return result;
-    }
+	void SetRelative(intptr_t data_pos, intptr_t value) {
+		data[cur + data_pos] = static_cast<uint64_t>(value);
+	}
 
-    VMemory() {
-        cur = 0;
-        data = new uint64_t[CAPACITY];
-    }
+	intptr_t GetRelative(intptr_t data_pos) {
+		return data[cur + data_pos];
+	}
 
-    ~VMemory() {
-        delete[] data;
-    }
+
+	void Push(intptr_t value) {
+
+		SetRelative(1, value);
+		Up(1);
+	}
+
+	intptr_t Pop() {
+		intptr_t result = GetRelative(0);
+		Down(1);
+		return result;
+	}
+	VMemory() {
+		cur = 0;
+		data = new intptr_t[CAPACITY];
+	}
+
+	~VMemory() {
+		delete[] data;
+	}
 };
 
 std::vector<std::string> str = {
-    "Result: ",
-    "\n",
+	"Result: ",
+	"\n",
 };
 
 
-#define NEXT uint8_t next_op = static_cast<uint8_t>(bytecode[cur].op); if (next_op >= OP_COUNT) goto L_DEFAULT; goto *dispatch_table[next_op]; 
+#define NEXT goto *dispatch_table[cur->op];
 
 int main() {
-    VMemory StackFrame;
-    VMemory CallFrame;
-    VMemory ArgFrame;
+	VMemory StackFrame;
+	VMemory CallFrame;
+
+	std::ios_base::sync_with_stdio(false);
 
 
-    Command  pushcode[] =
-    {
-        {LIT_S,0,0,0},
-        {VAR_I,1,0,0},
-        {LIT_S,1,0,0},
-        {eOF,0,0,0},
-    };
+	Command  pushcode[] =
+	{
+		{LIT_S,0,0,0},
+		{VAR_I,0,0,0},
+		{LIT_S,1,0,0},
+		{eOF,0,0,0},
+	};
 
-    Command  bytecode[] =
-    {
-        {ALLOC,10,0,0},
-        {MOV_II_VC,9,30,0},
-        {CALL_V,8,10,9},
-        {MOV_OUT_ARG,1,1,0},
-        {PRINT,0,0,0},
-        {ADD_III_VVC,9,9,1},
-        {DEALLOC,10,0,0},
-        {eOF,0,0,0},
+	Command bytecode[] =
+	{
+		{ MOV_II_VC,    1,  30, 0 },
+		{ CALL,         4,  2,  0 },
+		{ PRINT,        0,  0,  0 },
+		{ eOF,          0,  0,  0 },
 
-        {MOV_OUT_ARG,1,1,0},
-        {IF_LE_II_VC,11,1,1},
-        {RET_I_V,10,1,0},
-        {SUB_III_VVC,2,1,1},
-        {CALL_V,8,10,2},
-        {MOV_OUT_ARG,4,1,0},
-        {SUB_III_VVC,3,1,2},
-        {CALL_V,8,10,3},
-        {MOV_OUT_ARG,5,1,0},
-        {RET_ADD_II_VV,10,4,5},
-    };
+		{ IF_LE_II_VC,  6,  -1, 1 },
+		{ RET,          -1, 0,  0 },
+
+		{ ADD_III_VVC,  3,  -1, -1 },
+		{ CALL,         4,  4,  0 },
+		{ ADD_III_VVC,  3,  -1, -2 },
+		{ CALL,         4, 4,  1 },
 
 
-    ArgFrame.Alloc(65536);
+		{ ADD_III_VVV,  2, 1 ,  0 },
+		{ RET,  2, 1 ,  0 },
+	};
+
+	static void* dispatch_table[OP_COUNT] = {
+		&& L_MOV_II_VC,
 
 
-    intptr_t cur = 0;
+
+		&& L_ADD_III_VVC,
+		&& L_ADD_III_VVV,
 
 
-    static void* dispatch_table[OP_COUNT] = {
-        && L_MOV_II_VV,
-        && L_MOV_II_VC,
 
-        && L_MOV_IN_ARG,
-        && L_MOV_IN_ARG_CONST,
-
-        && L_MOV_OUT_ARG,
-
-        && L_ADD_III_VVV,
-        && L_ADD_III_VVC,
-
-        && L_SUB_III_VVC,
-
-        && L_CALL,
-        && L_CALL_C,
-        && L_CALL_V,
-
-        && L_RET_I_V,
-        && L_RET_I_C,
-        && L_RET_ADD_II_VV,
-
-        && L_ALLOC,
-
-        && L_DEALLOC,
-
-        && L_IF_LE_II_VC,
-
-        && L_PRINT,
-
-        && L_GOTO,
-
-        && L_eOF
-    };
+		&& L_CALL,
 
 
-    auto start = std::chrono::steady_clock::now();
+		&& L_RET,
+		&& L_RET_ADD_III_VVV,
 
-    NEXT;
 
-L_ALLOC:
-    {
-        StackFrame.Alloc(bytecode[cur].mem1);
-        cur++;
-        NEXT;
-    }
-L_DEALLOC:
-    {
-        StackFrame.DeAlloc(bytecode[cur].mem1);
-        cur++;
-        NEXT;
-    }
-L_MOV_II_VV:
-    {
-        cur++;
-        NEXT;
-    }
+		&& L_IF_LE_II_VC,
+
+		&& L_PRINT,
+
+
+
+		&& L_PAUSE,
+		&& L_eOF
+	};
+
+
+
+
+
+
+
+
+	Command* cur = bytecode;
+
+
+	float bavg = 0;
+	float bmin = 10000000;
+	float bmax = 0;
+
+	
+	int bcount = 1000;
+
+	for(int i = 1; i < bcount;i++){
+
+
+	auto start = std::chrono::steady_clock::now();
+
+
+	NEXT;
+
+
 L_MOV_II_VC:
-    {
-        const Command& cmd = bytecode[cur];
-        StackFrame.Set(cmd.mem1, cmd.mem2);
-        cur++;
-        NEXT;
-    }
-L_MOV_IN_ARG:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(cmd.mem1, StackFrame.Get(cmd.mem2));
-        cur++;
-        NEXT;
-    }
-L_MOV_IN_ARG_CONST:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(cmd.mem1, cmd.mem2);
-        cur++;
-        NEXT;
-    }
-L_MOV_OUT_ARG:
-    {
-        const Command& cmd = bytecode[cur];
-        StackFrame.Set(cmd.mem1, ArgFrame.Get(cmd.mem2));
-        cur++;
-        NEXT;
-    }
+	{
+		StackFrame.SetRelative(cur->mem1, cur->mem2);
+		cur++;
+		NEXT;
+	}
 
 L_IF_LE_II_VC:
-    {
-        const Command& cmd = bytecode[cur];
-        bool cond = StackFrame.Get(cmd.mem2) <= cmd.mem3;
+	{
+		bool cond = StackFrame.GetRelative(cur->mem2) <= cur->mem3;
 
-        if (cond) {
-            cur = cur + 1;
-        }
-        else {
-            cur = cmd.mem1;
-        }
+		if (cond) {
+			cur++;
+		}
+		else {
+			cur = bytecode + cur->mem1;
+		}
 
-        NEXT;
-    }
+		NEXT;
+	}
 
-L_ADD_III_VVV:
-    {
-        const Command& cmd = bytecode[cur];
-        StackFrame.Set(cmd.mem1, StackFrame.Get(cmd.mem2) + StackFrame.Get(cmd.mem3));
-        cur++;
 
-        NEXT;
-    }
 L_ADD_III_VVC:
-    {
-        const Command& cmd = bytecode[cur];
-        StackFrame.Set(cmd.mem1, StackFrame.Get(cmd.mem2) + cmd.mem3);
-        cur++;
+	{
+		StackFrame.SetRelative(cur->mem1, StackFrame.GetRelative(cur->mem2) + cur->mem3);
+		cur++;
 
-        NEXT;
-    }
-L_SUB_III_VVC:
-    {
-        const Command& cmd = bytecode[cur];
-        StackFrame.Set(cmd.mem1, StackFrame.Get(cmd.mem2) - cmd.mem3);
-        cur++;
-        NEXT;
-    }
+		NEXT;
+	}
+L_ADD_III_VVV:
+	{
+		StackFrame.SetRelative(cur->mem1, StackFrame.GetRelative(cur->mem2) + StackFrame.GetRelative(cur->mem3));
+		cur++;
+
+		NEXT;
+	}
 L_PRINT:
-    {
-        const Command& cmd = bytecode[cur];
-        int i = cmd.mem1;
-        while (true) {
-            if (pushcode[i].op == VAR_I) {
-                std::cout << StackFrame.Get(pushcode[i].mem1);
+	{
+		if(i == bcount-1){
+			int i = cur->mem1;
 
-            }
-            else if (pushcode[i].op == LIT_S) {
-                std::cout << str[pushcode[i].mem1];
 
-            }
-            else {
-                break;
+			while (true) {
+				if (pushcode[i].op == VAR_I) {
+					std::cout << StackFrame.GetRelative(pushcode[i].mem1);
 
-            }
-            i++;
-        }
+				}
+				else if (pushcode[i].op == LIT_S) {
+					std::cout << str[pushcode[i].mem1];
 
-        cur++;
-        NEXT;
-    }
+				}
+				else {
+					break;
+
+				}
+				i++;
+			}
+		}
+		cur++;
+		NEXT;
+	}
 L_CALL:
-    {
-        const Command& cmd = bytecode[cur];
-        CallFrame.Push(cur + 1);
-        cur = cmd.mem1;
-        StackFrame.Alloc(cmd.mem2);
-        NEXT;
-    }
-L_CALL_C:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(1, cmd.mem3);
-        CallFrame.Push(cur + 1);
-        cur = cmd.mem1;
-        StackFrame.Alloc(cmd.mem2);
-        NEXT;
-    }
-L_CALL_V:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(1, StackFrame.Get(cmd.mem3));
-        CallFrame.Push(cur + 1);
-        cur = cmd.mem1;
-        StackFrame.Alloc(cmd.mem2);
-        NEXT;
-    }
-L_RET_I_V:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(1, StackFrame.Get(cmd.mem2));
-        cur = CallFrame.Pop();
-        StackFrame.DeAlloc(cmd.mem1);
-        NEXT;
-    }
-L_RET_I_C:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(1, cmd.mem2);
-        cur = CallFrame.Pop();
-        StackFrame.DeAlloc(cmd.mem1);
-        NEXT;
-    }
-L_RET_ADD_II_VV:
-    {
-        const Command& cmd = bytecode[cur];
-        ArgFrame.Set(1, StackFrame.Get(cmd.mem2) + StackFrame.Get(cmd.mem3));
-        cur = CallFrame.Pop();
-        StackFrame.DeAlloc(cmd.mem1);
-        NEXT;
-    }
-L_GOTO:
-    {
-        const Command& cmd = bytecode[cur];
-        cur = cmd.mem1;
-        NEXT;
-    }
+	{
+
+		intptr_t mem2 = cur->mem2;
+
+
+		CallFrame.Push((cur - bytecode) + 1);
+		CallFrame.Push(cur->mem2);
+		CallFrame.Push(cur->mem3);
+
+		cur = bytecode + cur->mem1;
+
+		StackFrame.Up(mem2);
+
+		NEXT;
+	}
+
+
+L_RET:
+	{
+
+		intptr_t result = StackFrame.GetRelative(cur->mem1);
+
+
+		intptr_t destination = CallFrame.Pop();
+		intptr_t popp = CallFrame.Pop();
+		intptr_t ret_idx = CallFrame.Pop();
+
+
+		StackFrame.Down(popp);
+
+		cur = bytecode + ret_idx;
+
+
+		StackFrame.SetRelative(destination, result);
+
+
+		NEXT;
+	}
+L_RET_ADD_III_VVV:
+	{
+
+		intptr_t result = StackFrame.GetRelative(cur->mem1) + StackFrame.GetRelative(cur->mem2);
+
+
+		intptr_t destination = CallFrame.Pop();
+		intptr_t popp = CallFrame.Pop();
+		intptr_t ret_idx = CallFrame.Pop();
+
+
+		StackFrame.Down(popp);
+
+		cur = bytecode + ret_idx;
+
+
+		StackFrame.SetRelative(destination, result);
+
+
+		NEXT;
+	}
+L_PAUSE:
+	{
+		//	__debugbreak();
+		NEXT;
+	}
 L_eOF:
-    {
-        goto eof;
-    }
-L_DEFAULT:
-    {
-        std::cout << "CRUSH: cur = " << cur << std::endl;
-        goto eof;
-    }
+	{
+		StackFrame.SetCur(0);
+		CallFrame.SetCur(0);
+		cur = bytecode;
+		goto eof;
+	}
 
 eof:
-    auto end = std::chrono::steady_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "elapsed: " << ms << " ms" << std::endl;
 
-    return 0;
+	auto end = std::chrono::steady_clock::now();
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+	if(i > 10){
+		bavg = bavg + (ms - bavg) / ((float)i-10);
+
+		if (ms > bmax) {
+			bmax = ms;
+		}
+		if (ms < bmin) { //bmin == 10000000
+			bmin = ms;
+		}
+	}
+
+}
+	std::cout << "count: " << bcount  << std::endl;
+
+	std::cout << "avg: " << bavg << " ms" << std::endl;
+	std::cout << "min: " << bmin << " ms" << std::endl;
+	std::cout << "max: " << bmax << " ms" << std::endl;
+
+	return 0;
 }
