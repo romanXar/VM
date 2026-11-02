@@ -117,7 +117,7 @@ int main() {
 
 	intptr_t bytecode[] =
 	{
-	MOV_II_VC,    1,  30 ,
+	MOV_II_VC,    1,  50 ,
 	CALL,         10, 2,  0 ,
 	PRINT,        0 ,
 	eOF ,
@@ -159,7 +159,7 @@ int main() {
 
 	int bcount = 1000;
 
-	for (int i = 1; i < bcount;i++) {
+	//for (int i = 1; i < bcount;i++) {
 
 		auto start = std::chrono::steady_clock::now();
 
@@ -200,7 +200,7 @@ int main() {
 		}
 	L_PRINT:
 		{
-			if (i == bcount - 1) {
+		//	if (i == bcount - 1) {
 				int i = cur[1];
 
 				while (true) {
@@ -218,7 +218,7 @@ int main() {
 					}
 					i++;
 				}
-			}
+		//	}
 			cur += 2;
 			NEXT;
 		}
@@ -288,7 +288,7 @@ int main() {
 		auto end = std::chrono::steady_clock::now();
 		std::chrono::duration<double, std::milli> elapsed = end - start;
 		double ms = elapsed.count();
-
+/*
 		if (i > 10) {
 			bavg = bavg + (ms - bavg) / ((float)i - 10);
 
@@ -300,12 +300,13 @@ int main() {
 			}
 		}
 		
-	}
-	std::cout << "count: " << bcount << std::endl;
+	}*/
+	//std::cout << "count: " << bcount << std::endl;
 
-	std::cout << "avg: " << bavg<< " ms" << std::endl;
-	std::cout << "min: " << bmin << " ms" << std::endl;
-	std::cout << "max: " << bmax << " ms" << std::endl;
+	//std::cout << "avg: " << bavg<< " ms" << std::endl;
+	//std::cout << "min: " << bmin << " ms" << std::endl;
+	//std::cout << "max: " << bmax << " ms" << std::endl;
+	std::cout << "ms: " <<  ms << " ms" << std::endl;
 	system("pause");  
 	return 0;
 }
