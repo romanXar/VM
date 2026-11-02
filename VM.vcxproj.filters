@@ -24,4 +24,7 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Release\VM.exe" />
+  </ItemGroup>
 </Project>

@@ -146,6 +146,9 @@
   <ItemGroup>
     <ClInclude Include="VM.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Release\VM.exe" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
